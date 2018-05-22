@@ -21,7 +21,7 @@ def build_request_packet(ipRequested):
 def build_offer_packet(macDst, ipDst):
     ipServer = "169.254.96.5"
     
-    pkt = Ether(dst="ff:ff:ff:ff:ff:ff")
+    pkt = Ether(dst=macDst)
     pkt /= IP(src=ipServer, dst="255.255.255.255")
     pkt /= UDP(sport=67, dport=68)
     pkt /= BOOTP(op=2, yiaddr=ipDst, siaddr=ipServer)
@@ -32,10 +32,10 @@ def build_offer_packet(macDst, ipDst):
 
 #---- CONSTRUIRE LA TRAME ACK ----
 
-def build_ack_packet(ipDst):
+def build_ack_packet(macDst, ipDst):
     ipServer = "169.254.96.5"
 
-    pkt = Ether(dt="ff:ff:ff:ff:ff:ff")
+    pkt = Ether(dst=macDst)
     pkt /= IP(src=ipServer, dst="255.255.255.255")
     pkt /= UDP(sport=67, dport=68)
     pkt /= BOOTP(op=2, yiaddre=ipDst, siaddr=ipServer)
@@ -65,7 +65,7 @@ def offer_ip(macDst, ipDst):
 #---- CONFIRMER L'IP ----
 
 def ack_ip(ipDst):
-    pkt = build_ack_packet(ipDst)
+    pkt = build_ack_packet(macDst, ipDst)
     pkt.show()
     #sendp(pkt)
 
