@@ -21,13 +21,27 @@ def build_request_packet(ipRequested):
 def build_offer_packet(macDst, ipDst):
     ipServer = "169.254.96.5"
     
-    pkt = Ether()
-    pkt /= IP(src=ipServer, dst=ipDst)
+    pkt = Ether(dst="ff:ff:ff:ff:ff:ff")
+    pkt /= IP(src=ipServer, dst="255.255.255.255")
     pkt /= UDP(sport=67, dport=68)
     pkt /= BOOTP(op=2, yiaddr=ipDst, siaddr=ipServer)
     pkt /= DHCP(options=[("message-type", "offer"),
-                         ("server_id", ipDst),
+                         ("server_id", ipServer),
                          "end"])
+    return pkt
+
+#---- CONSTRUIRE LA TRAME ACK ----
+
+def build_ack_packet(ipDst):
+    ipServer = "169.254.96.5"
+
+    pkt = Ether(dt="ff:ff:ff:ff:ff:ff")
+    pkt /= IP(src=ipServer, dst="255.255.255.255")
+    pkt /= UDP(sport=67, dport=68)
+    pkt /= BOOTP(op=2, yiaddre=ipDst, siaddr=ipServer)
+    pkt /= DHCP(options=[("message-type", "ack"),
+                        ("server_id", ipServer),
+                        "end"])
     return pkt
 
 #---- RESERVER TOUTES LES IP SUR UNE PLAGE D'ADRESSE ----
@@ -48,15 +62,25 @@ def offer_ip(macDst, ipDst):
     pkt.show()
     #sendp(pkt)
 
+#---- CONFIRMER L'IP ----
+
+def ack_ip(ipDst):
+    pkt = build_ack_packet(ipDst)
+    pkt.show()
+    #sendp(pkt)
+
 #---- EXTRACTION DES INFORMATIONS UTILES ----
 
 def extract_dhcp_request(p):
     p.show()
+    ip = p['IP'].src
+    mac = p['Ethernet'].src
+    
     #3: request, 1: discover
-    if p['DHCP options'].options[0][1] == 3:
-        ip = p['IP'].src
-        mac = p['Ethernet'].src
+    if p['DHCP options'].options[0][1] == 1:
         offer_ip(mac, ip)
+    elif p['DHCP options'].options[0][1] == 3:
+        ack_ip(ip)
 
 #---- PROGRAMME PRINCIPAL ----
         
