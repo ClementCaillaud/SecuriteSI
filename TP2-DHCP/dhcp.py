@@ -2,11 +2,22 @@ from scapy.all import *
 from time import sleep
 import os
 
+ipServer = "169.254.96.5"
+listeIp = []
+
+#---- CONSTRUIRE LA TRAME DISCOVER ----
+
+def build_discover_packet():
+    pkt = Ether(src=RandMAC(), dst="ff:ff:ff:ff:ff:ff")
+    pkt /= IP(src="0.0.0.0", dst="255.255.255.255")
+    pkt /= UDP(sport=68, dport=67)
+    pkt /= DHCP(options=[("message-type", "discover"),
+                         "end"])
+    return pkt
+
 #---- CONSTRUIRE LA TRAME DE DEMANDE D'IP ----
 
 def build_request_packet(ipRequested):
-    ipServer = "169.254.96.5"
-    
     pkt = Ether(src=RandMAC(), dst="ff:ff:ff:ff:ff:ff")
     pkt /= IP(src="0.0.0.0", dst="255.255.255.255")
     pkt /= UDP(sport=68, dport=67)
@@ -19,24 +30,21 @@ def build_request_packet(ipRequested):
 #---- CONSTRUIRE LA TRAME D'OFFRE D'IP ----
 
 def build_offer_packet(macDst, ipDst):
-    ipServer = "169.254.96.5"
-    
     pkt = Ether(dst=macDst)
-    pkt /= IP(src=ipServer, dst="255.255.255.255")
+    pkt /= IP(src=ipServer, dst=ipDst)
     pkt /= UDP(sport=67, dport=68)
     pkt /= BOOTP(op=2, yiaddr=ipDst, siaddr=ipServer)
     pkt /= DHCP(options=[("message-type", "offer"),
                          ("server_id", ipServer),
+                         ("subnet_mask", "255.255.0.0"),
                          "end"])
     return pkt
 
 #---- CONSTRUIRE LA TRAME ACK ----
 
 def build_ack_packet(macDst, ipDst):
-    ipServer = "169.254.96.5"
-
     pkt = Ether(dst=macDst)
-    pkt /= IP(src=ipServer, dst="255.255.255.255")
+    pkt /= IP(src=ipServer, dst=ipDst)
     pkt /= UDP(sport=67, dport=68)
     pkt /= BOOTP(op=2, yiaddre=ipDst, siaddr=ipServer)
     pkt /= DHCP(options=[("message-type", "ack"),
@@ -64,10 +72,12 @@ def offer_ip(macDst, ipDst):
 
 #---- CONFIRMER L'IP ----
 
-def ack_ip(ipDst):
-    pkt = build_ack_packet(macDst, ipDst)
-    pkt.show()
-    #sendp(pkt)
+def ack_ip(macDst, ipDst):
+    if ipDst not in listeIp:
+        pkt = build_ack_packet(macDst, ipDst)
+        listeIp.append(ipDst)
+        pkt.show()
+        #sendp(pkt)
 
 #---- EXTRACTION DES INFORMATIONS UTILES ----
 
@@ -80,7 +90,8 @@ def extract_dhcp_request(p):
     if p['DHCP options'].options[0][1] == 1:
         offer_ip(mac, ip)
     elif p['DHCP options'].options[0][1] == 3:
-        ack_ip(ip)
+        ipRequested = p['DHCP options'].options["requested_addr"]
+        ack_ip(mac, ipRequested)
 
 #---- PROGRAMME PRINCIPAL ----
         
