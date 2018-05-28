@@ -3,7 +3,7 @@ from time import sleep
 import os
 
 ipServer = "169.254.96.5"
-listeIp = []
+listeIp = {}
 
 #---- CONSTRUIRE LA TRAME DISCOVER ----
 
@@ -73,9 +73,9 @@ def offer_ip(macDst, ipDst):
 #---- CONFIRMER L'IP ----
 
 def ack_ip(macDst, ipDst):
-    if ipDst not in listeIp:
+    if ipDst not in listeIp or macDst in listeIp.keys():
         pkt = build_ack_packet(macDst, ipDst)
-        listeIp.append(ipDst)
+        listeIp[macDst] = ipDst
         pkt.show()
         #sendp(pkt)
 
